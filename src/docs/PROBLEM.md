@@ -116,7 +116,7 @@ Initial distribution hypothesis: partner with bookkeeping/accounting practices o
 | Quote/Route (later) | `id`, `intent_id`, `provider`, `from_asset`, `to_asset`, `rate`, `fees`, `expires_at`, `availability`, `reference` | Only authoritative executable quotes can authorize conversion; a DEX book rate is indicative and network-specific |
 | AuditEvent | `id`, `organization_id`, `actor_type`, `actor_id`, `event_type`, `entity_type`, `entity_id`, `payload`, `created_at` | Append-only; redact secrets and sensitive personal data |
 
-The current schema is only a prototype: it has a mandate, payee and coarse audit row, but no organization boundary, intent record, idempotency, approval, rail/network/issuer, or payment attempt. Additive Alembic migrations are required before implementing the full API.
+The current schema now persists a single-tenant mandate, approved payees, idempotent payment intents, human approvals and append-only payment audit rows. Still missing from the full model are organization tenancy, a separate immutable policy-decision table, separate payment-attempt records, a source-event inbox, executable quote/route persistence and general audit events for mandate/payee configuration changes. A payment hash/result currently lives on the intent row. Further changes should use additive Alembic migrations.
 
 ## API surface to implement
 

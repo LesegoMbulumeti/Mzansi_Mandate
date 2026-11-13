@@ -1,0 +1,74 @@
+{
+  "name": "Mandate · Invoice approved",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice-approved",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "9f1b76dd-a221-4a0f-9daf-7a8be3ded4a2",
+      "name": "Invoice approved webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-480, 0],
+      "webhookId": "invoice-approved-mandate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const event = $input.first().json.body ?? $input.first().json;\nconst required = ['invoice_id', 'payee', 'amount', 'currency', 'reason'];\nfor (const field of required) {\n  if (event[field] === undefined || event[field] === null || String(event[field]).trim() === '') {\n    throw new Error(`Missing required invoice field: ${field}`);\n  }\n}\nconst amount = Number(event.amount);\nif (!Number.isFinite(amount) || amount <= 0) throw new Error('Invoice amount must be positive');\nconst invoiceId = String(event.invoice_id).trim();\nreturn [{ json: {\n  idempotencyKey: `invoice:${invoiceId}`,\n  payload: {\n    payee: String(event.payee).trim(),\n    amount: String(event.amount),\n    currency: String(event.currency).trim().toUpperCase(),\n    issuer: event.issuer ? String(event.issuer).trim() : null,\n    network: event.network ?? 'testnet',\n    reason: String(event.reason).trim(),\n    source: 'invoice',\n    source_reference: invoiceId\n  }\n} }];"
+      },
+      "id": "f0a1de2d-2281-4f30-aec3-4e4225c54dc8",
+      "name": "Validate and normalize invoice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-230, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/api/v1/intents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotencyKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.payload }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "804e84ec-16e2-4d1e-9631-d4612be58c1d",
+      "name": "Submit payment intent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [20, 0]
+    }
+  ],
+  "connections": {
+    "Invoice approved webhook": {
+      "main": [[{"node": "Validate and normalize invoice", "type": "main", "index": 0}]]
+    },
+    "Validate and normalize invoice": {
+      "main": [[{"node": "Submit payment intent", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "versionId": "e9fdbf38-a53f-41f8-beba-6c21dc8fe621",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}

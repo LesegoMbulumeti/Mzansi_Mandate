@@ -67,20 +67,37 @@ Before the deadline make sure the repo is public, `README.md` has run steps and 
 
 ## 4. Local run
 
+Run from `src/`. Python 3.12 is required by the backend image and codebase.
+
 ```bash
 cp .env.example .env
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 alembic upgrade head
 uvicorn app.main:app --reload          # http://localhost:8000/docs
 PYTHONPATH=. pytest -q
 ```
 
-Or everything in Docker: `docker compose up --build`.
+The FastAPI settings load `src/.env` when running locally from `backend/`. Or start Postgres, API, Next.js and n8n together from `src/`: `docker compose up --build`.
 
 ## 5. Frontend
 
-The selected frontend is Next.js (React + TypeScript), not Vite. The `frontend/` directory is currently a README only. Scaffold it with `npx create-next-app@latest`, then run `npm install` and `npm run dev` from `frontend/` (default URL `http://localhost:3000`). Use ApexCharts for dashboard summaries once backed by real API data; particle effects on the public landing page must support reduced-motion preferences.
+The frontend is Next.js (React + TypeScript) in `frontend/`. For local development, start the backend as above, then run `npm install` and `npm run dev` from `frontend/` (default URL `http://localhost:3000`). Dashboard summaries use ApexCharts and live API data; the landing page particle effect respects reduced-motion preferences.
 
-Before exposing mandate changes, approvals or a kill switch for real funds, add authenticated roles and ensure the API, not the browser, enforces every business rule.
+Copy `.env.example` before starting. Set a local `ADMIN_LOGIN_PASSWORD` and `SESSION_SECRET`. The dashboard's single-operator password gate and API keys are suitable for a local demo only; use a proper identity provider and role-based authorization before deployment.
+
+## 6. n8n invoice workflow
+
+Import `n8n/invoice-approved.json`. Create separate Header Auth credentials for the inbound invoice webhook (`X-Invoice-Webhook-Secret`) and API request (`X-Webhook-Secret`) using their corresponding `.env` values. Select each credential on the webhook and HTTP Request nodes, then activate the workflow. Payload and sample request are in `n8n/README.md`.
+
+## 7. XRPL Testnet execution
+
+The app starts with `XRPL_PAYMENTS_ENABLED=false`. To execute Testnet payments, configure a dedicated treasury and a separate policy signer, fund the treasury, configure the exact RLUSD issuer/trustline for sender and recipient, then install the regular key interactively:
+
+```bash
+cd backend
+PYTHONPATH=. python scripts/configure_testnet_regular_key.py install
+```
+
+The script asks for the treasury master seed without writing it to `.env` or the repo. Verify a validated `tesSUCCESS`, set `XRPL_PAYMENTS_ENABLED=true`, and restart the API. Do not use production credentials or a mainnet endpoint in this demo. See `README.md` for regular-key revocation.
