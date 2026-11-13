@@ -29,7 +29,7 @@ export function DashboardCharts({ data, currency }: { data: Point[]; currency: s
     grid: { borderColor: "#edf0f5", strokeDashArray: 4 },
     xaxis: { categories: labels, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: "#8892a3", fontSize: "11px" } } },
     yaxis: { min: 0, forceNiceScale: true, labels: { style: { colors: "#8892a3", fontSize: "11px" }, formatter: (value) => `${currency} ${Math.round(value).toLocaleString("en-ZA")}` } },
-    tooltip: { y: { formatter: (value) => `${currency} ${value.toLocaleString("en-ZA", { maximumFractionDigits: 2 })}` } },
+    tooltip: { y: { formatter: (value) => `${currency} ${(value ?? 0).toLocaleString("en-ZA", { maximumFractionDigits: 2 })}` } },
   };
 
   return <div className="chart-grid">
