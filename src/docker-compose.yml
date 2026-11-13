@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mandate
+      POSTGRES_PASSWORD: mandate
+      POSTGRES_DB: mandate
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mandate"]
+      interval: 5s
+      retries: 10
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://mandate:mandate@db:5432/mandate
+    depends_on:
+      db:
+        condition: service_healthy
+    ports: ["8000:8000"]
+  n8n:
+    image: n8nio/n8n
+    ports: ["5678:5678"]
+    environment:
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - ./n8n/data:/home/node/.n8n
+
+volumes:
+  pgdata:
