@@ -19,6 +19,9 @@ class Mandate:
     max_slippage_pct: Decimal = Decimal("1.0")
     large_payment_threshold: Decimal | None = None
     active: bool = True  # kill switch
+    currency: str = "RLUSD"
+    issuer: str | None = None
+    version: int = 1
 
 
 @dataclass
@@ -28,6 +31,7 @@ class PaymentIntent:
     currency: str
     reason: str
     source: str = "api"  # invoice | payroll | till | api
+    issuer: str | None = None
 
 
 @dataclass
