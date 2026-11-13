@@ -34,7 +34,7 @@ Deliver one end-to-end invoice-to-supplier-settlement scenario for one named cus
 
 1. A finance user defines a mandate and an approved supplier in the demo UI.
 2. n8n receives an invoice-approved webhook and submits an idempotent payment intent.
-3. The agent enriches the invoice with known payee/corridor/asset context and requests a route/quote where a test source exists; missing firm quote or beneficiary evidence blocks execution.
+3. The separate invoice agent normalizes the approved structured event and initiates an intent without waiting for a human payment click. This MVP does not claim LLM-based PDF extraction or live corridor/FX enrichment.
 4. The API validates, deduplicates, evaluates the active mandate and records the decision and reason.
 5. An autonomous agent execution submits at least one eligible XRPL Testnet payment through a policy-controlled signing boundary; the agent has no signer secret. Verify `tesSUCCESS` and a validated ledger hash.
 6. The dashboard matches invoice reference → intent → policy event → payment attempt → validated transaction; show quote/route information if available.

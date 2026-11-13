@@ -2,7 +2,7 @@
 
 **African SME payables from business event to verified settlement.**
 
-An agent executes eligible supplier payments from approved invoice events, while an independent policy boundary controls signing and the finance team can reconcile each payout back to its source obligation. Spending limits alone are not the differentiator; local workflow integration and payout evidence are the product hypothesis.
+An autonomous invoice-agent service receives structured, approved supplier invoice events, submits payment intents, and leaves payment authority with the Mandate API's independent policy checks. The finance team can reconcile each payout back to its source obligation. Spending limits alone are not the differentiator; local workflow integration and payout evidence are the product hypothesis. The current agent is event-driven and deterministic; LLM-based PDF extraction is not implemented.
 
 Built by team **Mzansi Mandate** for the Node Engine Hackathon 2026, Ripple Agentic Finance track.
 Challenge: *"Would your CFO sign off?"*
@@ -18,13 +18,12 @@ An agent can initiate a payment, but a finance team needs four answers before tr
 
 ## The one design rule
 
-**The agent never holds the treasury key.** It autonomously initiates eligible payment intents. An independent Policy Service checks the mandate and is the only thing that can sign, using a dedicated regular key. A human sets limits outside the agent; the offline master key can revoke the regular key on-ledger as an emergency stop. The policy service enforces per-payment limits; key revocation does not.
+**The agent never holds the treasury key.** It autonomously initiates eligible payment intents. The separate Mandate API checks the human-defined mandate and is the only service that can reach the XRPL signer. A human sets limits outside the agent; the offline master key can revoke the regular key on-ledger as an emergency stop. The API policy enforces per-payment limits; key revocation does not.
 
 ```
-Payroll / Invoices / Tills --> n8n --> Intent API --> Agent --> Policy Service --> XRPL
-                                           event          executes     enforces + signs Testnet/Devnet
-                                                                           ^
-                                              React dashboard (CFO sets mandate, kill switch)
+Approved invoice --> n8n --> Invoice Agent service --> Mandate API policy --> XRPL Testnet/Devnet
+                                                        checks + signs
+                           React dashboard (CFO sets mandate, kill switch) ───┘
 ```
 
 ## Target customer
@@ -52,7 +51,7 @@ backend/app/
   models/         domain dataclasses (domain.py) and SQLAlchemy tables (orm.py)
   schemas/        Pydantic request/response contracts
   integrations/   xrpl_client.py, rails/ (pluggable payment rails)
-  agent/          LLM agent: initiates eligible intents, never signs
+  agent/          separate event-driven invoice agent; initiates intents, never signs
 backend/migrations/   Alembic versions
 frontend/             Next.js landing page and finance dashboard
 n8n/                  exported workflows
@@ -73,7 +72,7 @@ uvicorn app.main:app --reload     # http://localhost:8000/docs
 PYTHONPATH=. pytest -q
 ```
 
-Everything in containers (API, Postgres, Next.js, n8n):
+Everything in containers (API, separate invoice agent, Postgres, Next.js, n8n):
 
 ```bash
 docker compose up --build
@@ -91,8 +90,8 @@ Dashboard password: `ADMIN_LOGIN_PASSWORD` from `.env`. The Next.js server proxi
 
 1. Open `http://localhost:3000`, then sign in with `ADMIN_LOGIN_PASSWORD`.
 2. Set up a mandate with an expiry, asset and issuer; add the supplier's XRPL destination; activate the mandate.
-3. Import `n8n/invoice-approved.json` and add the two Header Auth credentials described in `n8n/README.md`.
-4. Post an invoice event to the n8n webhook. With `XRPL_PAYMENTS_ENABLED=false`, an allowed intent is recorded as authorized and the UI clearly states that no funds moved.
+3. Import `n8n/invoice-approved.json` and add the Header Auth credentials described in `n8n/README.md`.
+4. Post an invoice event to the n8n webhook. n8n calls the separate invoice-agent service, which autonomously submits the intent to the Mandate API. With `XRPL_PAYMENTS_ENABLED=false`, an allowed intent is recorded as authorized and the UI clearly states that no funds moved.
 
 ### Optional XRPL Testnet execution
 

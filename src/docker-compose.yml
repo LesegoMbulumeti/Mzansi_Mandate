@@ -21,12 +21,22 @@ services:
       db:
         condition: service_healthy
     ports: ["8000:8000"]
-  web:
-    build: ./frontend
-    env_file: .env
+  agent:
+    build: ./backend
+    command: ["uvicorn", "app.agent.main:app", "--host", "0.0.0.0", "--port", "8100"]
     environment:
       MANDATE_API_URL: http://api:8000
-      MANDATE_ADMIN_API_KEY: ${ADMIN_API_KEY:-local-admin-change-me}
+      AGENT_API_KEY: ${AGENT_API_KEY:-local-agent-change-me}
+    depends_on:
+      - api
+    ports: ["127.0.0.1:8100:8100"]
+  web:
+    build: ./frontend
+    environment:
+      MANDATE_API_URL: http://api:8000
+      MANDATE_ADMIN_API_KEY: ${ADMIN_API_KEY:?Set ADMIN_API_KEY in src/.env}
+      ADMIN_LOGIN_PASSWORD: ${ADMIN_LOGIN_PASSWORD:?Set ADMIN_LOGIN_PASSWORD in src/.env}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in src/.env}
     depends_on:
       - api
     ports: ["3000:3000"]
@@ -40,6 +50,8 @@ services:
       N8N_SECURE_COOKIE: "false"
     volumes:
       - ./n8n/data:/home/node/.n8n
+    depends_on:
+      - agent
 
 volumes:
   pgdata:
