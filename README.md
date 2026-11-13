@@ -61,27 +61,51 @@ docs/                 PROBLEM.md, ARCHITECTURE.md, SETUP.md
 
 ## Quick start
 
+Run from `src/`. Copy `.env.example` to `.env` and change `ADMIN_LOGIN_PASSWORD` and `SESSION_SECRET` before starting. Payment execution is disabled by default.
+
 ```bash
 cp .env.example .env
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 alembic upgrade head
 uvicorn app.main:app --reload     # http://localhost:8000/docs
 PYTHONPATH=. pytest -q
 ```
 
-Everything in containers (API, Postgres, n8n):
+Everything in containers (API, Postgres, Next.js, n8n):
 
 ```bash
 docker compose up --build
 ```
 
-Frontend (once scaffolded):
+Frontend:
 
 ```bash
 cd frontend && npm install && npm run dev   # Next.js default: http://localhost:3000
 ```
+
+Dashboard password: `ADMIN_LOGIN_PASSWORD` from `.env`. The Next.js server proxies admin requests with the server-side `ADMIN_API_KEY`; it does not expose this key to browser code. API docs are at `http://localhost:8000/docs`, n8n at `http://localhost:5678`.
+
+## First run
+
+1. Open `http://localhost:3000`, then sign in with `ADMIN_LOGIN_PASSWORD`.
+2. Set up a mandate with an expiry, asset and issuer; add the supplier's XRPL destination; activate the mandate.
+3. Import `n8n/invoice-approved.json` and add the two Header Auth credentials described in `n8n/README.md`.
+4. Post an invoice event to the n8n webhook. With `XRPL_PAYMENTS_ENABLED=false`, an allowed intent is recorded as authorized and the UI clearly states that no funds moved.
+
+### Optional XRPL Testnet execution
+
+Keep execution disabled until a dedicated treasury account and receiver are funded/configured on Testnet. Install a separate policy regular key using the treasury master wallet interactively:
+
+```bash
+cd backend
+PYTHONPATH=. python scripts/configure_testnet_regular_key.py install
+```
+
+The script prompts for the master seed without saving it. Verify it reports validated `tesSUCCESS`. Configure `TREASURY_ADDRESS`, `POLICY_SIGNER_SEED`, `RLUSD_ISSUER`, and `XRPL_PAYMENTS_ENABLED=true` in `.env`, then restart the API. The treasury and receiving account must be able to hold the exact issued asset (RLUSD trustline/issuer). To revoke the policy regular key, run the script with `revoke`; this is an emergency ledger-level stop, distinct from suspending the API mandate.
+
+The API rejects mainnet URLs. The UI does not provide a fiat account, naira payout, market quote or liquidity service.
 
 ### Test funds
 - Test XRP: https://xrpl.org/resources/dev-tools/xrp-faucets
@@ -104,4 +128,4 @@ alembic downgrade -1
 
 ## Security
 
-Testnet only. Never commit seeds or `.env`. The agent process must never read `POLICY_SIGNER_SEED`.
+XRPL signing is disabled until `XRPL_PAYMENTS_ENABLED=true`. Before enabling it, configure a dedicated Testnet treasury, matching issued-asset issuer/trustline and policy regular key. Never commit seeds or `.env`; the agent and n8n must never receive `POLICY_SIGNER_SEED`.

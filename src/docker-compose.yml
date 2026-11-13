@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_USER: mandate
-      POSTGRES_PASSWORD: mandate
-      POSTGRES_DB: mandate
+      POSTGRES_USER: ${POSTGRES_USER:-mandate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mandate_local_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-mandate}
     ports: ["5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -16,16 +16,28 @@ services:
     build: ./backend
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+psycopg://mandate:mandate@db:5432/mandate
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-mandate}:${POSTGRES_PASSWORD:-mandate_local_dev_password}@db:5432/${POSTGRES_DB:-mandate}
     depends_on:
       db:
         condition: service_healthy
     ports: ["8000:8000"]
+  web:
+    build: ./frontend
+    env_file: .env
+    environment:
+      MANDATE_API_URL: http://api:8000
+      MANDATE_ADMIN_API_KEY: ${ADMIN_API_KEY:-local-admin-change-me}
+    depends_on:
+      - api
+    ports: ["3000:3000"]
   n8n:
     image: n8nio/n8n
     ports: ["5678:5678"]
     environment:
-      - WEBHOOK_URL=http://localhost:5678/
+      WEBHOOK_URL: http://localhost:5678/
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_SECURE_COOKIE: "false"
     volumes:
       - ./n8n/data:/home/node/.n8n
 
