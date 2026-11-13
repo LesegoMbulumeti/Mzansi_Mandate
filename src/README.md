@@ -1,33 +1,35 @@
 # Mandate
 
-**CFO-grade rails for AI agents that move money on the XRP Ledger.**
+**African SME payables from business event to verified settlement.**
+
+An agent executes eligible supplier payments from approved invoice events, while an independent policy boundary controls signing and the finance team can reconcile each payout back to its source obligation. Spending limits alone are not the differentiator; local workflow integration and payout evidence are the product hypothesis.
 
 Built by team **Mzansi Mandate** for the Node Engine Hackathon 2026, Ripple Agentic Finance track.
 Challenge: *"Would your CFO sign off?"*
 
-An AI agent can pay, convert and reconcile, but no finance lead will let it near the treasury until four questions are answered:
+An agent can initiate a payment, but a finance team needs four answers before trusting that workflow:
 
 | CFO question | Mandate answer |
 |---|---|
 | What is the agent allowed to do? | A **mandate**: per-payment cap, daily budget, FX slippage limit, expiry |
-| Who can it pay? | Approved-counterparty allowlist (on-ledger Credentials / DepositAuth where possible) |
-| How do I stop it? | Kill switch that revokes the agent's signing authority **on the ledger** |
-| How do I prove what it did and why? | Append-only audit log: intent, reasoning, policy decision, XRPL tx hash |
+| Who can it pay? | Approved-counterparty list, verified against the invoice and payment destination |
+| How do I stop it? | Policy kill switch plus optional emergency regular-key revocation on XRPL |
+| How do I prove what it did and why? | Source invoice → intent → policy decision → payment result, including validated ledger evidence |
 
 ## The one design rule
 
-**The agent never holds the treasury key.** It only *proposes* payment intents. An independent Policy Service checks the mandate and is the only thing that can sign, using the treasury account's regular key. A human sets limits in the dashboard and can revoke that key on-chain.
+**The agent never holds the treasury key.** It autonomously initiates eligible payment intents. An independent Policy Service checks the mandate and is the only thing that can sign, using a dedicated regular key. A human sets limits outside the agent; the offline master key can revoke the regular key on-ledger as an emergency stop. The policy service enforces per-payment limits; key revocation does not.
 
 ```
-Payroll / Invoices / Tills --> n8n --> Intent API --> Agent (LLM) --> Policy Service --> XRPL
-                                                      proposes        enforces + signs   Testnet/Devnet
+Payroll / Invoices / Tills --> n8n --> Intent API --> Agent --> Policy Service --> XRPL
+                                           event          executes     enforces + signs Testnet/Devnet
                                                                            ^
                                               React dashboard (CFO sets mandate, kill switch)
 ```
 
 ## Target customer
 
-South African importers paying suppliers in Lagos and Nairobi, where each cross-border payment loses days and FX margin. The finance owner approves a mandate once; the agent runs supplier payables inside it.
+Initial demo profile: a Cape Town importer paying a Lagos supplier who agrees to receive RLUSD to an XRPL wallet. The first release demonstrates invoice-to-ledger reconciliation on Testnet; it does not claim to deliver local naira or provide an off-ramp. Validate the workflow with a real importer before making broader market claims.
 
 ## Stack
 
@@ -36,7 +38,7 @@ South African importers paying suppliers in Lagos and Nairobi, where each cross-
 | API | Python 3.12, **FastAPI**, Pydantic v2, clean MVC |
 | Data | **SQLAlchemy 2.0**, **Alembic** migrations, SQLite (dev) / Postgres 16 (Docker) |
 | Ledger | `xrpl-py`, XRPL Testnet (Devnet for Lending/Vault), test RLUSD |
-| Frontend | React + Vite |
+| Frontend | Next.js (React + TypeScript) |
 | Automation | n8n |
 | CI | GitHub Actions (ruff, migrations, pytest) |
 
@@ -50,9 +52,9 @@ backend/app/
   models/         domain dataclasses (domain.py) and SQLAlchemy tables (orm.py)
   schemas/        Pydantic request/response contracts
   integrations/   xrpl_client.py, rails/ (pluggable payment rails)
-  agent/          LLM agent: proposes intents, never signs
+  agent/          LLM agent: initiates eligible intents, never signs
 backend/migrations/   Alembic versions
-frontend/             React dashboard
+frontend/             Next.js landing page and finance dashboard
 n8n/                  exported workflows
 docs/                 PROBLEM.md, ARCHITECTURE.md, SETUP.md
 ```
@@ -75,10 +77,10 @@ Everything in containers (API, Postgres, n8n):
 docker compose up --build
 ```
 
-Frontend:
+Frontend (once scaffolded):
 
 ```bash
-cd frontend && npm install && npm run dev   # http://localhost:5173
+cd frontend && npm install && npm run dev   # Next.js default: http://localhost:3000
 ```
 
 ### Test funds
@@ -96,7 +98,7 @@ alembic downgrade -1
 
 ## Docs
 
-- [Problem scope and 12-hour plan](docs/PROBLEM.md)
+- [Problem scope, domain model and 12-hour plan](docs/PROBLEM.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Setup, GitHub workflow and migrations](docs/SETUP.md)
 
