@@ -78,3 +78,9 @@ PYTHONPATH=. pytest -q
 ```
 
 Or everything in Docker: `docker compose up --build`.
+
+## 5. Frontend
+
+The selected frontend is Next.js (React + TypeScript), not Vite. The `frontend/` directory is currently a README only. Scaffold it with `npx create-next-app@latest`, then run `npm install` and `npm run dev` from `frontend/` (default URL `http://localhost:3000`). Use ApexCharts for dashboard summaries once backed by real API data; particle effects on the public landing page must support reduced-motion preferences.
+
+Before exposing mandate changes, approvals or a kill switch for real funds, add authenticated roles and ensure the API, not the browser, enforces every business rule.
