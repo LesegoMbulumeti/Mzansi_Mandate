@@ -22,7 +22,7 @@ Next.js dashboard ── authenticated API ── FastAPI controllers
                                       policy signer only
 ```
 
-The dependency direction is HTTP controllers → application services → domain policy and repository/rail interfaces. Adapters implement database and provider interfaces. Domain policy has no network, database, LLM or XRPL dependency. The Next.js app talks only to the API; the browser and n8n never receive signer keys.
+The dependency direction is HTTP controllers → application services → domain policy and repository/rail interfaces. Adapters implement database and provider interfaces. Domain policy has no network, database, LLM or XRPL dependency. The Next.js app talks only to the API; the browser and n8n never receive signer keys. In this MVP, the policy and signing adapter run inside the same trusted FastAPI process; split the signer into a separately deployed service before production use.
 
 Autonomy flow: n8n records an approved invoice event; the agent retrieves eligible work, reasons over allowed context, then calls the intent/execute API without waiting for per-payment human approval when the mandate permits it. The independent policy service rechecks the mandate and is the only component allowed to invoke the XRPL signer. The agent's call initiates the action, while the policy service—not the agent's plan or prompt—decides whether signing is authorized. Human approval is reserved for configured exceptions such as high-value transfers.
 
@@ -90,7 +90,7 @@ For a dedicated demo account, an offline CFO/master wallet can install a policy-
 
 ## HTTP and integration contracts
 
-Use request/response Pydantic schemas with validation and stable error codes. `POST /intents` requires an idempotency key and returns `intent_id`, `status`, `decision`, `reason_code`, `detail` and optional `payment_attempt`. API version is `/api/v1`. List endpoints are paginated and filtered server-side. Controllers call services and map domain errors to HTTP status codes; no policy logic lives in routes.
+Use request/response Pydantic schemas with validation and stable error codes. `POST /intents` requires an idempotency key and returns intent ID, mandate version, policy verdict, status, detail and optional XRPL hash/result. API version is `/api/v1`. List endpoints are paginated server-side. Controllers call services and map domain errors to HTTP status codes; no policy logic lives in routes. Operator routes use `X-Admin-API-Key`; the intent endpoint accepts separate agent or n8n credentials.
 
 n8n should normalize one source event into the same intent contract. For the MVP, build only `invoice-approved`; payroll batch and till settlement become separate workflow adapters after the same idempotent contract is proven. Retry a timed-out request with the same key and query the existing intent before any retry that might dispatch a payment.
 
@@ -98,10 +98,10 @@ n8n should normalize one source event into the same intent contract. For the MVP
 
 Use **Next.js (React + TypeScript)** for the product UI. Landing page sections: problem, controlled workflow, rails/integration boundary, auditability and a demo CTA. Use a subtle particle background as decorative presentation only; respect reduced-motion and provide a static fallback. The signed-in admin views are mandate/payee management, intent queue/detail, approvals, audit trail and kill-switch status. Use ApexCharts for admin aggregates only; do not fabricate live liquidity or market figures. Chart.js is unnecessary if ApexCharts is selected.
 
-The current `src/frontend` is documentation only. The README/setup references to Vite must be removed when the Next.js application is scaffolded. Keep landing-page components separate from authenticated dashboard components.
+The Next.js application is scaffolded in `src/frontend`: the public landing page, password login, session-protected dashboard, mandate/payee controls, approvals, intent detail and audit trail are implemented. The dashboard uses an HTTP-only signed session and a same-origin Next.js API proxy; `MANDATE_ADMIN_API_KEY` stays server-side. ApexCharts plots persisted policy aggregates, and tsParticles is decorative with reduced-motion support.
 
 ## Current repository state
 
-Implemented: FastAPI app, health endpoint, SQLAlchemy entities for a basic mandate/payee/audit schema, initial Alembic migration, a pure initial policy evaluator, XRPL payment adapter stub and policy unit tests.
+Implemented: FastAPI controllers/services/repositories for mandates, payees, idempotent intents, approvals, dashboard aggregates and payment audit; append-only payment audit records; additive Alembic migration `0002`; API keys for operator/agent/n8n access; optional XRPL Testnet/Devnet submission with validated-result handling; a manual regular-key install/revoke script; Next.js landing/login/dashboard with ApexCharts and Lucide icons; and an importable n8n invoice webhook.
 
-Still prototype/incomplete: intent endpoint returns a hard-coded blocked result; no repository implementation or persistence flow is wired; there are no mandate/payee/audit controllers; no organization, intent, approval, idempotency or payment-attempt tables; signer and issuer config is not validated; transaction result handling assumes a returned hash; no auth; n8n has no exported workflow; Next.js frontend does not exist. Do not present these as implemented features.
+Still prototype/incomplete: the mandate is single-tenant; `BUSINESS_TIMEZONE` is a single app setting; the LLM agent itself is not implemented (the API accepts an agent client); the password login is a local single-operator gate, not production identity/RBAC/MFA; policy and signing share the FastAPI process; there is no fiat payout adapter, executable FX quote or live liquidity service; and mandate/payee configuration changes are versioned but not yet written to a general-purpose activity log. XRPL execution defaults off and requires explicit wallet, issuer/trustline and regular-key setup. The UI and API have not been run or tested in this workspace.

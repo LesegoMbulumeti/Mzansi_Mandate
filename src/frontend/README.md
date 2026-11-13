@@ -1,19 +1,28 @@
-# Next.js frontend
+# Mandate web app
 
-The planned UI is Next.js (React + TypeScript), with a public landing page and a finance dashboard. The application has not been scaffolded yet.
+Next.js 16 App Router application with a public landing page and a password-protected finance dashboard. Lucide React provides icons, ApexCharts renders admin charts from persisted API summaries, and tsParticles adds a decorative landing-page field with a reduced-motion fallback.
 
-## Views
+## Local setup
 
-- Landing page: finance workflow pain, mandate controls, payment lifecycle, audit trail and demo CTA.
-- Overview: mandate status, today's budget usage, pending approvals and recent payment outcomes.
-- Mandate and payees: limits, expiry, permitted assets and approved counterparties.
-- Intent queue/detail: source reference, policy outcome, human approval and rail status.
-- Audit trail: searchable immutable decisions with transaction explorer links where available.
+From `src/`:
 
-## UI choices
+```bash
+cp .env.example .env
+```
 
-- Use CSS/canvas particles as decorative background only; support `prefers-reduced-motion` and static fallback.
-- Use ApexCharts for dashboard aggregates after real API data is available. Avoid invented liquidity or market statistics.
-- Keep API types aligned with FastAPI's OpenAPI schema. Do not put credentials or signer material in browser code.
+Set `ADMIN_LOGIN_PASSWORD` and `SESSION_SECRET` in `.env`. From `src/frontend/`:
 
-Scaffold with `npx create-next-app@latest` using TypeScript and the App Router. See `../docs/ARCHITECTURE.md` and `../docs/PROBLEM.md` before implementing API calls.
+```bash
+npm install
+npm run dev
+```
+
+The web app runs at `http://localhost:3000`. It proxies authenticated dashboard requests to `MANDATE_API_URL` and sends `MANDATE_ADMIN_API_KEY` from the server only. The API key is not exposed to client JavaScript.
+
+## Pages
+
+- `/`: product landing page and invoice-to-settlement workflow overview.
+- `/login`: dashboard password login; the server creates an HTTP-only signed session cookie.
+- `/dashboard`: live API dashboard with mandate/payee controls, approvals, payment status and ApexCharts summaries.
+
+The local password login is a single-operator development gate, not multi-user identity, SSO, MFA or production authorization. Deploy behind proper identity and role management before real funds or customer data are used.
