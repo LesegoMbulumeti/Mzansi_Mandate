@@ -29,23 +29,15 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://api:8000/api/v1/intents",
+        "url": "http://agent:8100/api/v1/agent/invoices",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Idempotency-Key",
-              "value": "={{ $json.idempotencyKey }}"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ $json.payload }}",
         "options": {
-          "timeout": 30000
+          "timeout": 65000
         }
       },
       "id": "804e84ec-16e2-4d1e-9631-d4612be58c1d",

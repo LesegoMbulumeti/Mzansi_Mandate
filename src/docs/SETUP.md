@@ -89,7 +89,7 @@ Copy `.env.example` before starting. Set a local `ADMIN_LOGIN_PASSWORD` and `SES
 
 ## 6. n8n invoice workflow
 
-Import `n8n/invoice-approved.json`. Create separate Header Auth credentials for the inbound invoice webhook (`X-Invoice-Webhook-Secret`) and API request (`X-Webhook-Secret`) using their corresponding `.env` values. Select each credential on the webhook and HTTP Request nodes, then activate the workflow. Payload and sample request are in `n8n/README.md`.
+Import `n8n/invoice-approved.json`. Create separate Header Auth credentials for the inbound invoice webhook (`X-Invoice-Webhook-Secret`, using `N8N_INBOUND_WEBHOOK_SECRET`) and the invoice agent (`X-Agent-API-Key`, using `AGENT_API_KEY`). Select each credential on the webhook and HTTP Request nodes, then activate the workflow. The HTTP Request node calls the standalone agent container; that service submits intents to the API, where policy is checked. Payload and sample request are in `n8n/README.md`.
 
 ## 7. XRPL Testnet execution
 

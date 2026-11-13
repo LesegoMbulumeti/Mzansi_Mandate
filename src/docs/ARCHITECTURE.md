@@ -6,9 +6,10 @@
 Invoice / payroll / till events
           │
           ▼
-    n8n workflows ── signed/idempotent webhook ──┐
-                                                  ▼
-Next.js dashboard ── authenticated API ── FastAPI controllers
+    n8n workflows ── authenticated invoice event ──► Invoice Agent service
+                                                        │ normalized idempotent intent
+                                                        ▼
+Next.js dashboard ── authenticated API ──► Mandate API controllers
                                                   │
                           ┌───────────────────────┴────────────────────┐
                           ▼                                            ▼
@@ -22,9 +23,9 @@ Next.js dashboard ── authenticated API ── FastAPI controllers
                                       policy signer only
 ```
 
-The dependency direction is HTTP controllers → application services → domain policy and repository/rail interfaces. Adapters implement database and provider interfaces. Domain policy has no network, database, LLM or XRPL dependency. The Next.js app talks only to the API; the browser and n8n never receive signer keys. In this MVP, the policy and signing adapter run inside the same trusted FastAPI process; split the signer into a separately deployed service before production use.
+The invoice agent runs as a separate container and receives no database URL or XRPL signing seed. It can submit intents only. The Mandate API independently evaluates the active human-defined policy and then invokes the XRPL adapter. The policy evaluator and signing adapter currently run inside the same trusted API process; the important MVP boundary is that the agent cannot access or bypass that process's signer. A hardened production design should split policy authorization and signing into separately deployed, narrowly scoped services.
 
-Autonomy flow: n8n records an approved invoice event; the agent retrieves eligible work, reasons over allowed context, then calls the intent/execute API without waiting for per-payment human approval when the mandate permits it. The independent policy service rechecks the mandate and is the only component allowed to invoke the XRPL signer. The agent's call initiates the action, while the policy service—not the agent's plan or prompt—decides whether signing is authorized. Human approval is reserved for configured exceptions such as high-value transfers.
+Autonomy flow: n8n forwards an approved structured invoice event; the standalone invoice agent normalizes it and calls the intent API without waiting for per-payment human approval when the mandate permits it. The API independently rechecks the mandate and is the only component allowed to invoke the XRPL signer. Human approval is reserved for configured exceptions such as high-value transfers. This MVP agent is deterministic and event-driven, not an LLM invoice reader.
 
 ## Python MVC / clean architecture layout
 
@@ -41,7 +42,7 @@ backend/app/
   integrations/
     rails/           Rail interface and XRPL testnet implementation
     fx/              Firm quote interface (only when a real source is selected)
-  agent/             autonomous intent execution through guarded API; no signer or policy bypass
+  agent/             separate invoice-agent API/client; no signer or policy bypass
   db/                engine, session and unit-of-work setup
 ```
 
@@ -92,16 +93,16 @@ For a dedicated demo account, an offline CFO/master wallet can install a policy-
 
 Use request/response Pydantic schemas with validation and stable error codes. `POST /intents` requires an idempotency key and returns intent ID, mandate version, policy verdict, status, detail and optional XRPL hash/result. API version is `/api/v1`. List endpoints are paginated server-side. Controllers call services and map domain errors to HTTP status codes; no policy logic lives in routes. Operator routes use `X-Admin-API-Key`; the intent endpoint accepts separate agent or n8n credentials.
 
-n8n should normalize one source event into the same intent contract. For the MVP, build only `invoice-approved`; payroll batch and till settlement become separate workflow adapters after the same idempotent contract is proven. Retry a timed-out request with the same key and query the existing intent before any retry that might dispatch a payment.
+n8n authenticates one source event and normalizes it for `POST /api/v1/agent/invoices`. The agent derives a stable idempotency key from the invoice ID, then submits the intent using its restricted agent credential. For the MVP, only `invoice-approved` is wired; payroll batch and till settlement become separate workflow adapters after this contract is proven. Retry the same invoice ID on timeout; the API's idempotency record prevents a second payment attempt.
 
 ## Frontend direction
 
 Use **Next.js (React + TypeScript)** for the product UI. Landing page sections: problem, controlled workflow, rails/integration boundary, auditability and a demo CTA. Use a subtle particle background as decorative presentation only; respect reduced-motion and provide a static fallback. The signed-in admin views are mandate/payee management, intent queue/detail, approvals, audit trail and kill-switch status. Use ApexCharts for admin aggregates only; do not fabricate live liquidity or market figures. Chart.js is unnecessary if ApexCharts is selected.
 
-The Next.js application is scaffolded in `src/frontend`: the public landing page, password login, session-protected dashboard, mandate/payee controls, approvals, intent detail and audit trail are implemented. The dashboard uses an HTTP-only signed session and a same-origin Next.js API proxy; `MANDATE_ADMIN_API_KEY` stays server-side. ApexCharts plots persisted policy aggregates, and tsParticles is decorative with reduced-motion support.
+The Next.js application is scaffolded in `src/frontend`: the public landing page, password login, session-protected dashboard, mandate/payee controls, approvals, intent detail and audit trail are implemented. The dashboard uses an HTTP-only signed session and a same-origin Next.js API proxy; `MANDATE_ADMIN_API_KEY` stays server-side. Docker Compose passes only the admin API key, login password, and session secret to the web container; it does not pass the treasury or policy signer seed. ApexCharts plots persisted policy aggregates, and tsParticles is decorative with reduced-motion support.
 
 ## Current repository state
 
-Implemented: FastAPI controllers/services/repositories for mandates, payees, idempotent intents, approvals, dashboard aggregates and payment audit; append-only payment audit records; additive Alembic migration `0002`; API keys for operator/agent/n8n access; optional XRPL Testnet/Devnet submission with validated-result handling; a manual regular-key install/revoke script; Next.js landing/login/dashboard with ApexCharts and Lucide icons; and an importable n8n invoice webhook.
+Implemented: FastAPI controllers/services/repositories for mandates, payees, idempotent intents, approvals, dashboard aggregates and payment audit; append-only payment audit records; additive Alembic migration `0002`; a separate event-driven invoice-agent container that has no signer seed and can submit only through the intent API; optional XRPL Testnet/Devnet submission with validated-result handling; a manual regular-key install/revoke script; Next.js landing/login/dashboard with ApexCharts and Lucide icons; and an importable n8n invoice webhook that calls the agent.
 
-Still prototype/incomplete: the mandate is single-tenant; `BUSINESS_TIMEZONE` is a single app setting; the LLM agent itself is not implemented (the API accepts an agent client); the password login is a local single-operator gate, not production identity/RBAC/MFA; policy and signing share the FastAPI process; there is no fiat payout adapter, executable FX quote or live liquidity service; and mandate/payee configuration changes are versioned but not yet written to a general-purpose activity log. XRPL execution defaults off and requires explicit wallet, issuer/trustline and regular-key setup. The UI and API have not been run or tested in this workspace.
+Still prototype/incomplete: the agent is deterministic and does not use an LLM to extract invoices or perform reasoning; the mandate is single-tenant; `BUSINESS_TIMEZONE` is a single app setting; the password login is a local single-operator gate, not production identity/RBAC/MFA; policy and signing share the FastAPI process; there is no fiat payout adapter, executable FX quote or live liquidity service; and mandate/payee configuration changes are versioned but not yet written to a general-purpose activity log. XRPL execution defaults off and requires explicit wallet, issuer/trustline and regular-key setup. Runtime validation and the live demo remain for the user.
