@@ -19,6 +19,11 @@ def create_payee(body: PayeeIn, session: Session = Depends(get_session)) -> Paye
     return PayeeService(session).create(body.name, body.xrpl_address)
 
 
+@router.put("/{payee_id}", response_model=PayeeOut)
+def update_payee(payee_id: int, body: PayeeIn, session: Session = Depends(get_session)) -> PayeeOut:
+    return PayeeService(session).update(payee_id, body.name, body.xrpl_address)
+
+
 @router.delete("/{payee_id}", response_model=PayeeOut)
 def deactivate_payee(payee_id: int, session: Session = Depends(get_session)) -> PayeeOut:
     return PayeeService(session).deactivate(payee_id)

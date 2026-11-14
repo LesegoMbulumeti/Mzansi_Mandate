@@ -1,5 +1,5 @@
 {
-  "name": "Mandate · Invoice approved",
+  "name": "Mandate \u00b7 Invoice approved",
   "nodes": [
     {
       "parameters": {
@@ -13,18 +13,24 @@
       "name": "Invoice approved webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-480, 0],
+      "position": [
+        -480,
+        0
+      ],
       "webhookId": "invoice-approved-mandate"
     },
     {
       "parameters": {
-        "jsCode": "const event = $input.first().json.body ?? $input.first().json;\nconst required = ['invoice_id', 'payee', 'amount', 'currency', 'reason'];\nfor (const field of required) {\n  if (event[field] === undefined || event[field] === null || String(event[field]).trim() === '') {\n    throw new Error(`Missing required invoice field: ${field}`);\n  }\n}\nconst amount = Number(event.amount);\nif (!Number.isFinite(amount) || amount <= 0) throw new Error('Invoice amount must be positive');\nconst invoiceId = String(event.invoice_id).trim();\nreturn [{ json: {\n  idempotencyKey: `invoice:${invoiceId}`,\n  payload: {\n    payee: String(event.payee).trim(),\n    amount: String(event.amount),\n    currency: String(event.currency).trim().toUpperCase(),\n    issuer: event.issuer ? String(event.issuer).trim() : null,\n    network: event.network ?? 'testnet',\n    reason: String(event.reason).trim(),\n    source: 'invoice',\n    source_reference: invoiceId\n  }\n} }];"
+        "jsCode": "const event = $input.first().json.body ?? $input.first().json;\nconst required = ['invoice_id', 'payee', 'amount', 'currency', 'reason'];\nfor (const field of required) {\n  if (event[field] === undefined || event[field] === null || String(event[field]).trim() === '') {\n    throw new Error(`Missing required invoice field: ${field}`);\n  }\n}\nconst amount = Number(event.amount);\nif (!Number.isFinite(amount) || amount <= 0) throw new Error('Invoice amount must be positive');\nconst invoiceId = String(event.invoice_id).trim();\nreturn [{ json: {\n  payload: {\n    invoice_id: invoiceId,\n    payee: String(event.payee).trim(),\n    amount: String(event.amount),\n    currency: String(event.currency).trim().toUpperCase(),\n    issuer: event.issuer ? String(event.issuer).trim() : null,\n    network: event.network ?? 'testnet',\n    reason: String(event.reason).trim(),\n  }\n} }];"
       },
       "id": "f0a1de2d-2281-4f30-aec3-4e4225c54dc8",
       "name": "Validate and normalize invoice",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-230, 0]
+      "position": [
+        -230,
+        0
+      ]
     },
     {
       "parameters": {
@@ -44,15 +50,34 @@
       "name": "Submit payment intent",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [20, 0]
+      "position": [
+        20,
+        0
+      ]
     }
   ],
   "connections": {
     "Invoice approved webhook": {
-      "main": [[{"node": "Validate and normalize invoice", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Validate and normalize invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Validate and normalize invoice": {
-      "main": [[{"node": "Submit payment intent", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Submit payment intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -61,6 +86,8 @@
     "saveManualExecutions": true
   },
   "versionId": "e9fdbf38-a53f-41f8-beba-6c21dc8fe621",
-  "meta": {"templateCredsSetupCompleted": false},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
   "tags": []
 }

@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     admin_api_key: str = "local-admin-change-me"
     agent_api_key: str = "local-agent-change-me"
     n8n_shared_secret: str = "local-n8n-change-me"
+    app_public_url: str = "http://localhost:3000"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
 
     @property
     def allowed_origins(self) -> list[str]:
@@ -49,6 +55,8 @@ class Settings(BaseSettings):
             secrets_to_check = (self.admin_api_key, self.agent_api_key, self.n8n_shared_secret)
             if any(len(secret) < 32 or secret.startswith("local-") for secret in secrets_to_check):
                 raise ValueError("Production requires unique API secrets of at least 32 characters")
+            if not self.smtp_host or not self.smtp_from_email:
+                raise ValueError("Production requires SMTP_HOST and SMTP_FROM_EMAIL for account recovery")
 
     def validate_business_timezone(self) -> None:
         try:

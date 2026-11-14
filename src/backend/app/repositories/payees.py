@@ -33,3 +33,16 @@ class PayeeRepository:
         payee.active = False
         self.session.flush()
         return payee
+
+    def reactivate(self, payee: PayeeRow, mandate_id: int, name: str) -> PayeeRow:
+        payee.mandate_id = mandate_id
+        payee.name = name
+        payee.active = True
+        self.session.flush()
+        return payee
+
+    def update(self, payee: PayeeRow, name: str, address: str) -> PayeeRow:
+        payee.name = name
+        payee.xrpl_address = address
+        self.session.flush()
+        return payee

@@ -35,7 +35,7 @@ export default function HomePage() {
           <a href="#controls">Controls</a>
           <a href="#rails">XRPL rails</a>
         </nav>
-        <Link href="/login" className="nav-cta">Open dashboard <ArrowUpRight size={15} /></Link>
+        <Link href="/register" className="nav-cta">Get started <ArrowUpRight size={15} /></Link>
       </header>
 
       <section className="hero-section">
@@ -46,7 +46,7 @@ export default function HomePage() {
           <h1>Move payables<br /><span>with purpose.</span></h1>
           <p className="hero-copy">From an approved supplier invoice to a verified ledger result, give every payment a clear route, a policy check and a traceable story.</p>
           <div className="hero-actions">
-            <Link href="/login" className="button button-primary">Explore the dashboard <ArrowRight size={17} /></Link>
+            <Link href="/register" className="button button-primary">Create owner account <ArrowRight size={17} /></Link>
             <a href="#workflow" className="text-link">See how it works <ArrowDownRight size={16} /></a>
           </div>
           <div className="hero-note"><LockKeyhole size={14} /> Policy-controlled execution <span /> Built for African SME workflows</div>

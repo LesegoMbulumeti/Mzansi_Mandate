@@ -10,7 +10,7 @@ From `src/`:
 cp .env.example .env
 ```
 
-Set `ADMIN_LOGIN_PASSWORD` and `SESSION_SECRET` in `.env`. From `src/frontend/`:
+Set `SESSION_SECRET` in `.env`; the API/admin credentials stay server-side and are not used as user passwords. From `src/frontend/`:
 
 ```bash
 npm install
@@ -22,7 +22,9 @@ The web app runs at `http://localhost:3000`. It proxies authenticated dashboard 
 ## Pages
 
 - `/`: product landing page and invoice-to-settlement workflow overview.
-- `/login`: dashboard password login; the server creates an HTTP-only signed session cookie.
+- `/register`: one-time owner-account setup for the shared local finance workspace.
+- `/login`: email and password sign-in; the server creates an HTTP-only signed session cookie.
+- `/forgot-password` and `/reset-password`: single-use, 30-minute recovery links. In development, the reset link is written to API logs. Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, and `APP_PUBLIC_URL` to deliver recovery emails.
 - `/dashboard`: live API dashboard with mandate/payee controls, approvals, payment status and ApexCharts summaries.
 
-The local password login is a single-operator development gate, not multi-user identity, SSO, MFA or production authorization. Deploy behind proper identity and role management before real funds or customer data are used.
+This initial account flow is single-owner: public registration closes after the first account because the current finance data model is one shared workspace. Team invitations and per-workspace roles are a separate follow-up before multi-tenant deployment. Configure a real SMTP provider before production so account recovery links are delivered by email.

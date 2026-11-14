@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.config import settings
-from app.controllers import audit, dashboard, intents, mandates, payees
+from app.controllers import audit, auth, dashboard, intents, mandates, payees
 from app.db.session import SessionLocal
 from app.services.errors import ConflictError, IntegrationError, NotFoundError, ValidationError
 
@@ -26,7 +26,7 @@ def create_app() -> FastAPI:
         allow_headers=["Content-Type", "Idempotency-Key", "X-Admin-API-Key", "X-Agent-API-Key", "X-Webhook-Secret"],
     )
 
-    for router in (intents.router, mandates.router, payees.router, audit.router, dashboard.router):
+    for router in (auth.router, intents.router, mandates.router, payees.router, audit.router, dashboard.router):
         app.include_router(router)
 
     @app.exception_handler(NotFoundError)
