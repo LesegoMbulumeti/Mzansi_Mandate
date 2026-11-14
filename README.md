@@ -60,38 +60,24 @@ docs/                 PROBLEM.md, ARCHITECTURE.md, SETUP.md
 
 ## Quick start
 
-Run from `src/`. Copy `.env.example` to `.env` and change `ADMIN_LOGIN_PASSWORD` and `SESSION_SECRET` before starting. Payment execution is disabled by default.
+Run the full local stack from `src/`. Copy `.env.example` to `.env`, set unique local API secrets and a random `SESSION_SECRET` (at least 32 characters). Keep XRPL execution disabled. This is the only routine start command; database migrations run when the API container starts.
 
 ```bash
+cd src
 cp .env.example .env
-cd backend
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --reload     # http://localhost:8000/docs
-PYTHONPATH=. pytest -q
+docker compose up -d --build
 ```
 
-Everything in containers (API, separate invoice agent, Postgres, Next.js, n8n):
+Open the product at `http://localhost:3000` and n8n at `http://localhost:5678`. Docker Desktop can show service status and logs. The API documentation at `http://localhost:8000/docs` is for developers; routine demo requests can be sent from the signed-in dashboard. Existing database data is retained by the Compose volume; do not use `docker compose down -v`.
 
-```bash
-docker compose up --build
-```
-
-Frontend:
-
-```bash
-cd frontend && npm install && npm run dev   # Next.js default: http://localhost:3000
-```
-
-Dashboard password: `ADMIN_LOGIN_PASSWORD` from `.env`. The Next.js server proxies admin requests with the server-side `ADMIN_API_KEY`; it does not expose this key to browser code. API docs are at `http://localhost:8000/docs`, n8n at `http://localhost:5678`.
+User sign-in is email/password. `ADMIN_API_KEY`, `AGENT_API_KEY`, and webhook secrets are service credentials and must never be entered in the browser or user login form.
 
 ## First run
 
-1. Open `http://localhost:3000`, then sign in with `ADMIN_LOGIN_PASSWORD`.
+1. Open `http://localhost:3000/register` and create the first owner account. This local prototype has one owner account for a shared workspace; existing mandate and payment data remains in the same database.
 2. Set up a mandate with an expiry, asset and issuer; add the supplier's XRPL destination; activate the mandate.
 3. Import `n8n/invoice-approved.json` and add the Header Auth credentials described in `n8n/README.md`.
-4. Post an invoice event to the n8n webhook. n8n calls the separate invoice-agent service, which autonomously submits the intent to the Mandate API. With `XRPL_PAYMENTS_ENABLED=false`, an allowed intent is recorded as authorized and the UI clearly states that no funds moved.
+4. Activate the n8n workflow. From the dashboard's **Try the invoice workflow** panel, choose an approved supplier and send a small demo invoice through n8n. The UI shows the intent and policy result. With `XRPL_PAYMENTS_ENABLED=false`, an allowed intent is recorded as authorized and no funds move. This replaces the routine `curl` request; the initial n8n import and credential selection still happen once in n8n's UI.
 
 ### Optional XRPL Testnet execution
 
@@ -102,7 +88,7 @@ cd backend
 PYTHONPATH=. python scripts/configure_testnet_regular_key.py install
 ```
 
-The script prompts for the master seed without saving it. Verify it reports validated `tesSUCCESS`. Configure `TREASURY_ADDRESS`, `POLICY_SIGNER_SEED`, `RLUSD_ISSUER`, and `XRPL_PAYMENTS_ENABLED=true` in `.env`, then restart the API. The treasury and receiving account must be able to hold the exact issued asset (RLUSD trustline/issuer). To revoke the policy regular key, run the script with `revoke`; this is an emergency ledger-level stop, distinct from suspending the API mandate.
+The script prompts for the master seed without saving it. Verify it reports validated `tesSUCCESS`. Configure `TREASURY_ADDRESS`, `POLICY_SIGNER_SEED`, `RLUSD_ISSUER`, and `XRPL_PAYMENTS_ENABLED=true` in `.env`, then restart the API. The treasury and receiving account must be able to hold the exact issued asset (RLUSD trustline/issuer). To revoke the policy regular key, run the script with `revoke`; this sensitive wallet operation intentionally remains a deliberate command-line task, distinct from routine dashboard actions.
 
 The API rejects mainnet URLs. The UI does not provide a fiat account, naira payout, market quote or liquidity service.
 

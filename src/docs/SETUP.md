@@ -67,29 +67,33 @@ Before the deadline make sure the repo is public, `README.md` has run steps and 
 
 ## 4. Local run
 
-Run from `src/`. Python 3.12 is required by the backend image and codebase.
+For the normal demo, run from `src/` with Docker Compose. Python 3.12 is only needed for backend-only development.
 
 ```bash
-cp .env.example .env
-cd backend
+cp .env.example .env       # once; edit the local secrets in this file
+docker compose up -d --build
+```
+
+Then use `http://localhost:3000` and `http://localhost:5678`. The API migrates the database on startup. Docker Desktop can show service status/logs. Do not run `docker compose down -v`; that removes the Postgres data volume.
+
+For backend-only development, run from `backend/`:
+
+```bash
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 alembic upgrade head
-uvicorn app.main:app --reload          # http://localhost:8000/docs
-PYTHONPATH=. pytest -q
+uvicorn app.main:app --reload
 ```
-
-The FastAPI settings load `src/.env` when running locally from `backend/`. Or start Postgres, API, Next.js and n8n together from `src/`: `docker compose up --build`.
 
 ## 5. Frontend
 
 The frontend is Next.js (React + TypeScript) in `frontend/`. For local development, start the backend as above, then run `npm install` and `npm run dev` from `frontend/` (default URL `http://localhost:3000`). Dashboard summaries use ApexCharts and live API data; the landing page particle effect respects reduced-motion preferences.
 
-Copy `.env.example` before starting and set a random `SESSION_SECRET` (at least 32 characters). On the first launch, register the owner account at `/register`; registration closes after the first owner because this prototype uses one shared finance workspace. Sign in at `/login` with that email and password. In development, password reset links are available in `docker compose logs -f api`. Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, and `APP_PUBLIC_URL` for email delivery. `ADMIN_API_KEY` and `MANDATE_ADMIN_API_KEY` are server-to-server credentials, not user login details.
+Copy `.env.example` before starting and set a random `SESSION_SECRET` (at least 32 characters). On the first launch, register the owner account at `/register`; registration closes after the first owner because this prototype uses one shared finance workspace. Sign in at `/login` with that email and password. In development, the password reset link is shown in the app and API logs. Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, and `APP_PUBLIC_URL` for email delivery. `ADMIN_API_KEY` and `MANDATE_ADMIN_API_KEY` are server-to-server credentials, not user login details.
 
 ## 6. n8n invoice workflow
 
-Import `n8n/invoice-approved.json`. Create separate Header Auth credentials for the inbound invoice webhook (`X-Invoice-Webhook-Secret`, using `N8N_INBOUND_WEBHOOK_SECRET`) and the invoice agent (`X-Agent-API-Key`, using `AGENT_API_KEY`). Select each credential on the webhook and HTTP Request nodes, then activate the workflow. The HTTP Request node calls the standalone agent container; that service submits intents to the API, where policy is checked. Payload and sample request are in `n8n/README.md`.
+Import `n8n/invoice-approved.json`. Create separate Header Auth credentials for the inbound invoice webhook (`X-Invoice-Webhook-Secret`, using `N8N_INBOUND_WEBHOOK_SECRET`) and the invoice agent (`X-Agent-API-Key`, using `AGENT_API_KEY`). Select each credential on the webhook and HTTP Request nodes, then activate the workflow. The HTTP Request node calls the standalone agent container; that service submits intents to the API, where policy is checked. After this one-time n8n setup, use **Try the invoice workflow** in the dashboard to send demo invoices without `curl` or manual API calls. The demo is disabled whenever XRPL execution is enabled. Payload and recovery steps are in `n8n/README.md`.
 
 ## 7. XRPL Testnet execution
 

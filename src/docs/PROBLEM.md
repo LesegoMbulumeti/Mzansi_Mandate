@@ -71,20 +71,28 @@ Start interviews with Cape Town importers/accountants who manage supplier invoic
 
 Initial distribution hypothesis: partner with bookkeeping/accounting practices or vertical SME software providers that already handle supplier invoices. A later product could charge a workflow subscription, with rail/provider fees passed through transparently; validate willingness to pay and provider economics before fixing a price. For payout outside XRPL, partner with a licensed bank/payment provider rather than implying that Mandate itself offers local fiat accounts or off-ramps.
 
-## Prioritized work
+## Implementation status and next work
 
-| Priority | Work | Definition of done |
+Status below reflects the repository and the team's latest reported Testnet setup. A code path is not counted as a verified ledger transfer until the explorer shows its validated transaction.
+
+| Hackathon outcome | Current evidence | Status / next step |
 |---|---|---|
-| P0 | Product/API contract and threat boundary | Agent autonomously initiates an eligible transfer; an independent policy/signing boundary enforces limits; testnet-only; no claim of fiat rail access |
-| P0 | Mandate, payee, payment intent and audit persistence | Decimal money, explicit status, timestamps, source reference, idempotency key and append-only audit events |
-| P0 | Pure policy service and intent orchestration | Deterministic checks; every decision is persisted; duplicate event cannot pay twice |
-| P0 | Intent, mandate, payee and audit controllers | Thin HTTP layer with validation, pagination and clear error/status codes |
-| P0 | XRPL Testnet agent payment | At least one autonomous payment with verified validated-ledger result; explicit network/asset configuration; no silent mainnet fallback |
-| P0 | Workflow provenance and reconciliation | Invoice source reference flows through intent, policy event and payment attempt to the XRPL transaction hash |
-| P0 | Next.js dashboard and landing page | Mandate summary/editor, intent queue, audit history, human approval states, responsive product landing page |
-| P1 | n8n invoice workflow | Shared secret or signed webhook, idempotency key, retry-safe behavior, sample payload and source-to-payout matching |
-| P1 | Finance charts | ApexCharts admin charts only after API exposes meaningful aggregates; no fabricated live market data |
-| P2 | Payroll and till connectors, live FX/liquidity, BCB or bank payout | Defer until customer validation, authorized provider, documented API, sandbox credentials, jurisdiction, compliance and failure semantics exist |
+| Human controls spending limits and counterparties | Dashboard edits mandate caps, asset, issuer, expiry, activation, and approved suppliers. Saving a mandate pauses it. | Implemented in the prototype; demonstrate the settings in the UI. |
+| Limits are outside the agent's control | The separate agent has no admin key or XRPL seed; the Mandate API checks policy before the XRPL adapter. Policy and signing still share the API process. | Good MVP trust boundary from agent; split policy and signer services for production hardening. |
+| Agent autonomously initiates the workflow | n8n validates the invoice then calls the invoice-agent service, which submits an idempotent intent. Prior webhook runs returned both `authorized` and `blocked`. | Autonomy path implemented and policy outcomes reported; allowed requests have so far been tested with execution off, so they have not moved funds. |
+| Demonstrate a validated Testnet payment | `XRPL_PAYMENTS_ENABLED` has remained false in the reported dashboard state. Treasury Testnet RLUSD was claimed; recipient trustline/funding and a recipient payment are not yet evidenced by a validated Payment hash. | Not complete. Keep execution off until recipient, issuer, balance and policy signer are confirmed; then make one small Testnet payment and verify the explorer result. |
+| Finance UI and operator onboarding | Next.js landing/dashboard, ApexCharts, responsive layout, first-owner email/password signup, password recovery, and supplier/mandate management are in the repo. A dashboard action now sends a demo invoice through n8n without terminal `curl`. | Implemented in code; rebuild and run the demo from the UI. Initial n8n import/credential setup remains in n8n's UI. |
+| African local payout, FX and liquidity | No fiat provider, firm quote, liquidity API, or BCB payment integration is configured. | Out of the 12-hour MVP. Do not imply that RLUSD on XRPL automatically pays out in local currency. |
+
+### Remaining demo checklist
+
+1. Rebuild the API and web containers, then sign in to the existing Postgres-backed workspace. Do not remove the database volume.
+2. In n8n, confirm both Header Auth credentials are selected and activate the imported `invoice-approved` workflow.
+3. From the dashboard, run a small invoice with `XRPL_PAYMENTS_ENABLED=false`; show the authorized/no-funds-moved result and a policy-blocked result.
+4. Verify the recipient's Testnet trustline to the exact RLUSD issuer, then decide whether the team is ready to enable execution for one small Testnet transfer. Confirm the validated transaction on the XRPL Testnet explorer.
+5. Record the invoice reference, intent ID, verdict, transaction hash/result (if executed), and what was simulated or still unavailable in the demo pitch.
+
+Do not add payroll, retail tills, executable FX conversion, liquidity management, or a BCB/bank rail until there is a customer-confirmed use case and an authorized provider with published API documentation, sandbox credentials, jurisdiction/compliance requirements, and clear failure semantics.
 
 ## Core business rules
 
@@ -118,7 +126,7 @@ Initial distribution hypothesis: partner with bookkeeping/accounting practices o
 
 The current schema now persists a single-tenant mandate, approved payees, idempotent payment intents, human approvals and append-only payment audit rows. Still missing from the full model are organization tenancy, a separate immutable policy-decision table, separate payment-attempt records, a source-event inbox, executable quote/route persistence and general audit events for mandate/payee configuration changes. A payment hash/result currently lives on the intent row. Further changes should use additive Alembic migrations.
 
-## API surface to implement
+## Current API surface
 
 All endpoints are versioned under `/api/v1` and controllers remain thin.
 
@@ -126,12 +134,13 @@ All endpoints are versioned under `/api/v1` and controllers remain thin.
 |---|---|
 | `GET/PUT /mandate` | Read/update the demo organization's mandate; updates increment version |
 | `POST /mandate/activate`, `POST /mandate/suspend` | Explicit lifecycle transitions |
-| `GET/POST /payees`, `PATCH /payees/{id}` | Manage approved counterparties |
+| `GET/POST /payees`, `PUT/DELETE /payees/{id}` | List/create, edit, and deactivate approved counterparties |
 | `POST /intents` | Validate, deduplicate, evaluate, audit and execute eligible autonomous intent; return current state |
 | `GET /intents`, `GET /intents/{id}` | Paginated queue and detail including decision/attempt status |
-| `POST /intents/{id}/approve`, `/reject`, `/cancel` | Authorized human action; no agent approval endpoint |
+| `POST /intents/{id}/approve`, `/reject` | Authorized human decision for exceptional large payments |
 | `GET /audit-events` | Filtered, paginated, read-only history |
 | `GET /health`, `GET /ready` | Process health and dependency readiness |
+| `/auth/register`, `/login`, `/forgot-password`, `/reset-password`, `/validate-session` | First-owner account, email/password sessions, recovery, and server-side session validation |
 
 `POST /intents` should accept an `Idempotency-Key`, source/source reference, payee identity, amount, explicit asset/network and a short reason. It should not accept a caller-supplied policy verdict, transaction hash, or claimed approval.
 
