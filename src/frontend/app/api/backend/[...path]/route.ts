@@ -16,8 +16,28 @@ async function proxy(request: NextRequest, context: RouteContext) {
   }
   if (request.method !== "GET" && request.method !== "HEAD") {
     const origin = request.headers.get("origin");
-    if (origin && new URL(origin).origin !== request.nextUrl.origin) {
-      return NextResponse.json({ detail: "Cross-origin request rejected" }, { status: 403 });
+    if (origin) {
+      const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0].trim();
+      const requestHost = forwardedHost || request.headers.get("host");
+      const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim();
+      const requestProtocol = forwardedProto
+        ? `${forwardedProto.replace(/:$/, "")}:`
+        : request.nextUrl.protocol;
+
+      let originUrl: URL | undefined;
+      try {
+        originUrl = new URL(origin);
+      } catch {
+        return NextResponse.json({ detail: "Cross-origin request rejected" }, { status: 403 });
+      }
+
+      if (
+        !requestHost ||
+        originUrl.host.toLowerCase() !== requestHost.toLowerCase() ||
+        originUrl.protocol !== requestProtocol
+      ) {
+        return NextResponse.json({ detail: "Cross-origin request rejected" }, { status: 403 });
+      }
     }
   }
 

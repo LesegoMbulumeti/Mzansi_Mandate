@@ -85,7 +85,7 @@ The FastAPI settings load `src/.env` when running locally from `backend/`. Or st
 
 The frontend is Next.js (React + TypeScript) in `frontend/`. For local development, start the backend as above, then run `npm install` and `npm run dev` from `frontend/` (default URL `http://localhost:3000`). Dashboard summaries use ApexCharts and live API data; the landing page particle effect respects reduced-motion preferences.
 
-Copy `.env.example` before starting. Set a local `ADMIN_LOGIN_PASSWORD` and `SESSION_SECRET`. The dashboard's single-operator password gate and API keys are suitable for a local demo only; use a proper identity provider and role-based authorization before deployment.
+Copy `.env.example` before starting and set a random `SESSION_SECRET` (at least 32 characters). On the first launch, register the owner account at `/register`; registration closes after the first owner because this prototype uses one shared finance workspace. Sign in at `/login` with that email and password. In development, password reset links are available in `docker compose logs -f api`. Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, and `APP_PUBLIC_URL` for email delivery. `ADMIN_API_KEY` and `MANDATE_ADMIN_API_KEY` are server-to-server credentials, not user login details.
 
 ## 6. n8n invoice workflow
 

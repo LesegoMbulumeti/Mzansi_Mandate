@@ -185,6 +185,17 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .login-form input:focus, .modal-form input:focus, .modal-form select:focus { border-color: #7da8f7; box-shadow: 0 0 0 3px rgba(49,108,244,.1); }
 .login-form input::placeholder, .modal-form input::placeholder { color: #a4aebc; }
 .login-submit { width: 100%; margin-top: 8px; }
+.auth-link-row { display: flex; justify-content: flex-end; margin-top: -3px; }
+.auth-link-row a, .auth-switch a, .auth-centered-link { color: #316cf4; font-size: 10px; font-weight: 650; }
+.auth-switch { margin-top: 18px; color: #7d899b; text-align: center; font-size: 10px; }
+.auth-switch a { margin-left: 3px; }
+.auth-card-wide { width: min(460px, 100%); }
+.auth-actions { display: grid; gap: 14px; margin-top: 24px; }
+.auth-centered-link { text-align: center; }
+.auth-login-link { display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+.dev-reset-link { display: grid; gap: 8px; margin-top: 18px; padding: 12px; border: 1px solid #dbe7fb; border-radius: 8px; background: #f5f8ff; }
+.dev-reset-link > span { color: #78869a; font-size: 9px; }
+.dev-reset-link a { display: inline-flex; align-items: center; gap: 6px; color: #316cf4; font-size: 10px; font-weight: 700; }
 .form-error { color: #b34444; font-size: 10px; }
 .login-security { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 23px; color: #8793a5; font-size: 9px; }
 .login-security svg { color: #32a587; }
@@ -345,6 +356,7 @@ td:first-child .intent-avatar { display: inline-grid; vertical-align: middle; ma
 .table-footer div { display: flex; gap: 5px; }
 .table-footer button { padding: 5px 7px; border: 1px solid #edf0f5; border-radius: 4px; color: #a5aeb9; background: #fff; font-size: 7px; }
 .lower-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.lower-grid.single-panel-grid { grid-template-columns: minmax(0, 1fr); }
 .suppliers-panel, .mandate-panel { padding: 16px 17px; }
 .small-add { width: 27px; height: 27px; border-color: #e9edf3; }
 .supplier-list { margin-top: 10px; }
@@ -354,11 +366,13 @@ td:first-child .intent-avatar { display: inline-grid; vertical-align: middle; ma
 .supplier-color-2 { color: #22927c; background: #e9f7f2; }
 .supplier-color-3 { color: #b57643; background: #fff2e7; }
 .supplier-name { flex: 1; min-width: 0; }
-.supplier-name b, .supplier-name small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.supplier-name b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .supplier-name b { color: #4b5e77; font-size: 9px; }
-.supplier-name small { margin-top: 3px; color: #9ba6b4; font-family: "DM Mono", monospace; font-size: 7px; }
+.supplier-name small { display: block; margin-top: 3px; color: #7c899d; font-family: "DM Mono", monospace; font-size: 8px; overflow-wrap: anywhere; }
 .supplier-remove { width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 5px; color: #a0abba; background: transparent; }
 .supplier-remove:hover { color: #b85950; background: #fff1ed; }
+.supplier-edit { width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 5px; color: #6582b4; background: transparent; }
+.supplier-edit:hover { color: #316cf4; background: #eef4ff; }
 .supplier-empty { min-height: 115px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #96a2b2; font-size: 9px; }
 .supplier-empty svg { color: #88a2cc; }
 .supplier-empty button { padding: 0; border: 0; color: #4c7ed1; background: transparent; font-size: 9px; font-weight: 650; }
