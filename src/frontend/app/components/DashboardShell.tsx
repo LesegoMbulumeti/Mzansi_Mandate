@@ -85,6 +85,11 @@ export function DashboardShell() {
   const [payeeAddress, setPayeeAddress] = useState("");
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState("");
+  const [workflowBusy, setWorkflowBusy] = useState(false);
+  const [workflowAmount, setWorkflowAmount] = useState("0.01");
+  const [workflowPayeeId, setWorkflowPayeeId] = useState("");
+  const [workflowMessage, setWorkflowMessage] = useState("");
+  const [workflowError, setWorkflowError] = useState("");
 
   const load = useCallback(async (quiet = false) => {
     if (quiet) setRefreshing(true); else setLoading(true);
@@ -203,9 +208,35 @@ export function DashboardShell() {
     window.location.assign("/login");
   }
 
+  async function sendDemoInvoice() {
+    const payee = selectedWorkflowPayee;
+    if (!payee) { setWorkflowError("Add an approved supplier before sending a workflow demo."); return; }
+    setWorkflowBusy(true); setWorkflowError(""); setWorkflowMessage("");
+    try {
+      const response = await fetch("/api/workflow/invoice-test", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payee: payee.xrpl_address,
+          amount: workflowAmount,
+          currency: mandate?.currency ?? "RLUSD",
+          issuer: mandate?.issuer ?? null,
+          network: summary?.network ?? "testnet",
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.detail ?? "The invoice workflow could not be reached");
+      const outcome = result.result ?? {};
+      setWorkflowMessage(`${result.invoice_id}: ${outcome.status ?? outcome.verdict ?? "workflow accepted"}${outcome.detail ? ` — ${outcome.detail}` : ""}`);
+      await load(true);
+    } catch (cause) {
+      setWorkflowError(cause instanceof Error ? cause.message : "The invoice workflow could not be reached");
+    } finally { setWorkflowBusy(false); }
+  }
+
   const mandate = summary?.mandate;
   const spendPercent = mandate ? Math.min(100, (Number(summary?.daily_spend ?? 0) / Number(mandate.daily_cap || 1)) * 100) : 0;
   const activePayees = payees.filter((payee) => payee.active);
+  const selectedWorkflowPayee = activePayees.find((payee) => String(payee.id) === workflowPayeeId) ?? activePayees[0];
 
   return <div className="dashboard-layout">
     <aside className="dashboard-sidebar">
@@ -238,6 +269,12 @@ export function DashboardShell() {
 
         {error && <div className="alert alert-error" role="alert"><CircleAlert size={17} /><span>{error}</span><button onClick={() => setError("")} aria-label="Dismiss"><X size={15} /></button></div>}
         {notice && <div className="alert alert-success" role="status"><BadgeCheck size={17} /><span>{notice}</span><button onClick={() => setNotice("")} aria-label="Dismiss"><X size={15} /></button></div>}
+
+        {section === "overview" && <section className="panel workflow-test-panel" aria-labelledby="workflow-test-title">
+          <div className="workflow-test-copy"><span className="eyebrow dark-eyebrow">WORKFLOW DEMO</span><h2 id="workflow-test-title">Try the invoice workflow</h2><p>Send a small demo invoice through the active n8n workflow. Choose an approved supplier and see the policy result here.</p></div>
+          <div className="workflow-test-action"><label htmlFor="workflow-payee">Approved supplier</label><div className="workflow-test-controls"><select id="workflow-payee" value={selectedWorkflowPayee ? String(selectedWorkflowPayee.id) : ""} onChange={(event) => setWorkflowPayeeId(event.target.value)} disabled={!activePayees.length}>{activePayees.map((payee) => <option value={payee.id} key={payee.id}>{payee.name} · {shortAddress(payee.xrpl_address)}</option>)}</select><input aria-label={`Demo amount in ${mandate?.currency ?? "RLUSD"}`} type="number" min="0.000001" step="0.01" value={workflowAmount} onChange={(event) => setWorkflowAmount(event.target.value)} /><button className="button button-primary" disabled={workflowBusy || !activePayees.length || summary?.execution_enabled} onClick={() => void sendDemoInvoice()}>{workflowBusy ? "Sending…" : "Send demo invoice"}<ArrowRight size={15} /></button></div><small>{summary?.execution_enabled ? "Turn off XRPL execution before testing; this demo sends no funds." : activePayees.length ? `Uses ${selectedWorkflowPayee?.name}; XRPL execution remains disabled.` : "Add an approved supplier to enable the demo."}</small></div>
+          {(workflowError || workflowMessage) && <div className={`workflow-feedback ${workflowError ? "is-error" : "is-success"}`} role={workflowError ? "alert" : "status"}>{workflowError || workflowMessage}</div>}
+        </section>}
 
         {loading ? <div className="loading-grid"><div className="panel skeleton" /><div className="panel skeleton" /><div className="panel skeleton" /><div className="panel skeleton" /></div> : summary && <>
           {!mandate && <div className="setup-banner"><span className="setup-banner-icon"><SlidersHorizontal size={19} /></span><div><b>Set up your first payment mandate</b><p>Define the spending boundary and issuer before you activate payments.</p></div><button className="button button-primary" onClick={() => { setMandateForm(defaultMandateForm()); setMandateOpen(true); }}>Configure mandate <ArrowRight size={15} /></button></div>}

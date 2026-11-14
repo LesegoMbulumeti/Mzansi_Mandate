@@ -36,6 +36,8 @@ services:
       MANDATE_API_URL: http://api:8000
       MANDATE_ADMIN_API_KEY: ${ADMIN_API_KEY:?Set ADMIN_API_KEY in src/.env}
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in src/.env}
+      N8N_INVOICE_WEBHOOK_URL: http://n8n:5678/webhook/invoice-approved
+      N8N_INBOUND_WEBHOOK_SECRET: ${N8N_INBOUND_WEBHOOK_SECRET:?Set N8N_INBOUND_WEBHOOK_SECRET in src/.env}
     depends_on:
       - api
     ports: ["3000:3000"]
